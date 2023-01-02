@@ -1,9 +1,10 @@
 use crate::{DateTest, TimeTest};
+use crate::dates::DateTimeError;
 
 pub struct Task {
     description: String,
-    due_date: Option<DateTest>,
-    due_time: Option<TimeTest>,
+    due_date: Result<DateTest, DateTimeError>,
+    due_time: Result<TimeTest, DateTimeError>,
     complete: bool,
     flagged: bool,
 }
@@ -12,18 +13,24 @@ impl Task {
     pub fn new() -> Task {
         Task {
             description: String::new(),
-            due_date: None,
-            due_time: None,
+            due_date: Err(DateTimeError::UnspecifiedDate),
+            due_time: Err(DateTimeError::UnspecifiedTime),
             complete: false,
             flagged: false
         }
     }
 
-    pub fn from(description: String, due_date: Option<DateTest>, due_time: Option<TimeTest>, complete: bool, flagged: bool) -> Task {
+    pub fn from(description: String, due_date: Option<Result<DateTest, DateTimeError>>, due_time: Option<Result<TimeTest, DateTimeError>>, complete: bool, flagged: bool) -> Task {
         Task {
             description,
-            due_date,
-            due_time,
+            due_date: match due_date {
+                Some(date) => date,
+                None => Err(DateTimeError::UnspecifiedDate),
+            },
+            due_time: match due_time {
+                Some(time) => time,
+                None => Err(DateTimeError::UnspecifiedTime),
+            },
             complete,
             flagged
         }
@@ -37,11 +44,11 @@ impl Task {
         self.complete = false;
     }
 
-    pub fn edit_due_date(&mut self, due_date: Option<DateTest>) {
+    pub fn edit_due_date(&mut self, due_date: Result<DateTest, DateTimeError>) {
         self.due_date = due_date;
     }
 
-    pub fn edit_due_time(&mut self, due_time: Option<TimeTest>) {
+    pub fn edit_due_time(&mut self, due_time: Result<TimeTest, DateTimeError>) {
         self.due_time = due_time;
     }
 
@@ -69,17 +76,25 @@ impl Task {
         }
 
         match &self.due_date {
-            Some(date) => {
+            Ok(date) => {
                 println!("Due Date: {}", date.as_calendar_date_string());
             },
-            _ => { println!("Due Date: Not specified."); }
+            Err(E) => match E {
+                    DateTimeError::UnspecifiedDate => { println!("Date Time: Not specified."); },
+                    _ => { println!("Date Time: Invalid."); }
+                }
         }
 
         match &self.due_time {
-            Some(time) => {
+            Ok(time) => {
                 println!("Due Time: {}", time.as_12_hour_time_string());
             },
-            _ => { println!("Due Time: Not specified."); }
+            Err(E) => {
+                match E {
+                    DateTimeError::UnspecifiedTime => { println!("Due Time: Not specified."); },
+                    _ => { println!("Due Time: Invalid."); }
+                }
+            }
         }
 
         println!("Complete: {}", self.complete);

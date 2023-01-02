@@ -1,9 +1,50 @@
 use std::collections::HashMap;
 use lazy_static::lazy_static;
+use std::fmt;
+use std::error::Error as StdError;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DateTimeError {
+    InvalidYear,
+    InvalidMonth,
+    InvalidDay,
+    InvalidHour,
+    InvalidMinute,
+    UnspecifiedDate,
+    UnspecifiedTime,
+}
+
+impl fmt::Display for DateTimeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            DateTimeError::InvalidYear => write!(f, "Year out of bounds."),
+            DateTimeError::InvalidMonth => write!(f, "Month out of bounds."),
+            DateTimeError::InvalidDay => write!(f, "Day out of bounds."),
+            DateTimeError::InvalidHour => write!(f, "Hour out of bounds."),
+            DateTimeError::InvalidMinute => write!(f, "Minute out of bounds."),
+            DateTimeError::UnspecifiedDate => write!(f, "Date not specified."),
+            DateTimeError::UnspecifiedTime => write!(f, "Time not specified."),
+        }
+    }
+}
+
+impl StdError for DateTimeError {
+    fn description(&self) -> &str {
+        match self {
+            DateTimeError::InvalidYear => "Year out of bounds.",
+            DateTimeError::InvalidMonth => "Month out of bounds.",
+            DateTimeError::InvalidDay => "Day out of bounds.",
+            DateTimeError::InvalidHour => "Hour out of bounds.",
+            DateTimeError::InvalidMinute => "Minute out of bounds.",
+            DateTimeError::UnspecifiedDate => "Date not specified.",
+            DateTimeError::UnspecifiedTime => "Time not specified.",
+        }
+    }
+}
 
 lazy_static! {
     #[derive(Debug)]
-    static ref MONTHS: HashMap<&'static str, &'static str> = HashMap::from([
+    static ref MONTHS_EXPAND: HashMap<&'static str, &'static str> = HashMap::from([
         ("january", "January"),
         ("february", "February"),
         ("march", "March"),
@@ -20,6 +61,7 @@ lazy_static! {
         ("feb", "February"),
         ("mar", "March"),
         ("apr", "April"),
+        ("may", "May"),
         ("jun", "June"),
         ("jul", "July"),
         ("aug", "August"),
@@ -39,18 +81,42 @@ lazy_static! {
         ("10", "October"),
         ("11", "November"),
         ("12", "December"),
-        ("January", "1"),
-        ("February", "2"),
-        ("March", "3"),
-        ("April", "4"),
-        ("May", "5"),
-        ("June", "6"),
-        ("July", "7"),
-        ("August", "8"),
-        ("September", "9"),
-        ("October", "10"),
-        ("November", "11"),
-        ("December", "12"),
+    ]);
+}
+
+lazy_static! {
+    #[derive(Debug)]
+    static ref MONTH_TO_DAY: HashMap<&'static str, u8> = HashMap::from([
+        ("January", 1),
+        ("February", 2),
+        ("March", 3),
+        ("April", 4),
+        ("May", 5),
+        ("June", 6),
+        ("July", 7),
+        ("August", 8),
+        ("September", 9),
+        ("October", 10),
+        ("November", 11),
+        ("December", 12),
+    ]);
+}
+
+lazy_static! {
+    #[derive(Debug)]
+    static ref DAY_LIMITS: HashMap<&'static str, u8> = HashMap::from([
+        ("January", 31),
+        ("February", 28),
+        ("March", 31),
+        ("April", 30),
+        ("May", 31),
+        ("June", 30),
+        ("July", 31),
+        ("August", 31),
+        ("September", 30),
+        ("October", 31),
+        ("November", 30),
+        ("December", 31),
     ]);
 }
 
@@ -68,21 +134,31 @@ pub struct DateTest {
 }
 
 impl DateTest {
-    pub fn new(year: i32, month: &str, day: u8) -> Option<DateTest> {
+    pub fn new(year: i32, month: &str, day: u8) -> Result<DateTest, DateTimeError> {
         let month = month.to_string();
-        match MONTHS.get(month.to_lowercase().as_str()) {
+        match MONTHS_EXPAND.get(month.to_lowercase().as_str()) {
             Some(month_name) => {
-                let month = Month {
-                    month_name: month_name.to_string(),
-                    month_num: MONTHS.get(month_name).unwrap().parse::<u8>().unwrap(),
-                };
-                Some(DateTest {
-                    year,
-                    month,
-                    day,
-                })
-            },
-            _ => None,
+                if year < 0 {
+                    Err(DateTimeError::InvalidYear)
+                } else if day < 1 {
+                    Err(DateTimeError::InvalidDay)
+                } else if day > DAY_LIMITS.get(month_name).unwrap().to_owned() as u8 {
+                    Err(DateTimeError::InvalidDay)
+                } else {
+                    let month_num = MONTH_TO_DAY.get(month_name).unwrap().to_owned() as u8;
+                    let month = Month {
+                        month_name: month_name.to_string(),
+                        month_num,
+                    };
+
+                    Ok(DateTest {
+                        year,
+                        month,
+                        day,
+                    })
+                }
+            }
+            None => Err(DateTimeError::InvalidMonth),
         }
     }
 
@@ -109,11 +185,13 @@ pub struct TimeTest {
 }
 
 impl TimeTest {
-    pub fn new(hour: u8, minute: u8) -> Option<TimeTest> {
-        if hour > 23 || minute > 59 {
-            None
+    pub fn new(hour: u8, minute: u8) -> Result<TimeTest, DateTimeError> {
+        if hour > 23 {
+            Err(DateTimeError::InvalidHour)
+        } else if minute > 59 {
+            Err(DateTimeError::InvalidMinute)
         } else {
-            Some(TimeTest {
+            Ok(TimeTest {
                 hour,
                 minute,
             })

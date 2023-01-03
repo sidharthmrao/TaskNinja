@@ -2,6 +2,9 @@ use crate::{save_tasks, TaskList};
 use std::fmt;
 use std::error::Error as StdError;
 use indoc::{indoc};
+use crate::Date;
+use crate::dates::DateTimeError;
+use crate::Time;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CommandError {
@@ -83,6 +86,17 @@ impl Response {
 }
 
 pub(crate) fn command_handler(command: Vec<String>, task_list: &mut TaskList) -> Result<String, CommandError> {
+    // let mut task_list: TaskList;
+    //
+    // match read_tasks() {
+    //     Ok(mut tasks) => {
+    //         task_list = tasks;
+    //     }
+    //     Err(_) => {
+    //         task_list = TaskList::new();
+    //     }
+    // }
+
     if command.len() == 0 {
         return Response::help("help");
     }
@@ -93,11 +107,11 @@ pub(crate) fn command_handler(command: Vec<String>, task_list: &mut TaskList) ->
                 1 => Response::help("help"),
                 _ => Response::help(&command[1]),
             }
-        },
+        }
         "add" => {
             if command.len() == 1 {
                 Err(CommandError::MissingRequiredArgument("Add".to_string(), "Title".to_string()))
-            } else {
+            } else if command.len() == 2 {
                 match command[1].as_str() {
                     "-h" | "--help" => Response::help("add"),
                     "-t" | "--title" => Err(CommandError::MissingRequiredArgument("Add".to_string(), "Title".to_string())),
@@ -112,15 +126,93 @@ pub(crate) fn command_handler(command: Vec<String>, task_list: &mut TaskList) ->
                         Ok(("'".to_owned() + &command[1] + "' added.").to_string())
                     }
                 }
+            } else {
+                let mut title: Option<String> = None;
+                let mut description: Option<String> = None;
+                let mut date: Option<Result<Date, DateTimeError>> = None;
+                let mut time: Option<Result<Time, DateTimeError>> = None;
+                let mut flag: bool = false;
+                let mut priority: Option<u8> = None;
+
+                let mut i = 1;
+                while i < command.len() {
+                    match command[i].as_str() {
+                        "-h" | "--help" => return Response::help("add"),
+                        "-t" | "--title" => {
+                            if i + 1 < command.len() {
+                                title = Some(command[i + 1].to_string());
+                                i += 1;
+                            } else {
+                                return Err(CommandError::MissingRequiredArgument("Add".to_string(), "Title".to_string()));
+                            }
+                        }
+                        "-d" | "--description" => {
+                            if i + 1 < command.len() {
+                                description = Some(command[i + 1].to_string());
+                                i += 1;
+                            } else {
+                                return Err(CommandError::InvalidArgument("Add".to_string(), "Description".to_string()));
+                            }
+                        }
+                        "-D" | "--date" => {
+                            if i + 1 < command.len() {
+                                date = Some(Date::parse(&command[i + 1]));
+                                i += 1;
+                            } else {
+                                return Err(CommandError::InvalidArgument("Add".to_string(), "Date".to_string()));
+                            }
+                        }
+                        "-T" | "--time" => {
+                            if i + 1 < command.len() {
+                                time = Some(Time::parse(&command[i + 1]));
+                                i += 1;
+                            } else {
+                                return Err(CommandError::InvalidArgument("Add".to_string(), "Time".to_string()));
+                            }
+                        }
+                        "-f" | "--flag" => {
+                            flag = true;
+                        }
+                        "-p" | "--priority" => {
+                            if i + 1 < command.len() {
+                                match command[i + 1].parse::<u8>() {
+                                    Ok(p) => priority = Some(p),
+                                    Err(_) => return Err(CommandError::InvalidArgument("Add".to_string(), "Priority".to_string())),
+                                }
+                                i += 1;
+                            } else {
+                                return Err(CommandError::InvalidArgument("Add".to_string(), "Priority".to_string()));
+                            }
+                        }
+                        _ => {
+                            if title.is_none() && i == 1 {
+                                title = Some(command[i].to_string());
+                            } else {
+                                return Err(CommandError::InvalidArgument("Add".to_string(), command[i].to_string()));
+                            }
+                        }
+                    }
+                    i += 1;
+                }
+
+                if title.is_none() {
+                    return Err(CommandError::MissingRequiredArgument("Add".to_string(), "Title".to_string()));
+                } else {
+                    task_list.new_task(title.as_ref().unwrap().to_string(), description, date, time, priority, false, flag);
+                    Ok(("'".to_owned() + &title.unwrap() + "' added.").to_string())
+                }
             }
-        }
-        _ => {
-            println!("{} not found. Type 'help' for a list of commands.", command[0]);
-            Err(CommandError::InvalidHelpOperation(command[0].to_string()))
-        }
-    };
 
-    let _ = save_tasks(&task_list);
+            }
+            _ => {
+                println ! ("{} not found. Type 'help' for a list of commands.", command[0]);
+                Err(CommandError::InvalidHelpOperation(command[0].to_string()))
+            }
+        };
 
-    response
-}
+        let tasks = task_list;
+
+        let _ = save_tasks(tasks);
+
+        response
+    }

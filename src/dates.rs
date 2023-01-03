@@ -200,6 +200,20 @@ impl Date {
         }
     }
 
+    pub fn parse(date: &str) -> Result<Date, DateTimeError> {
+        let date = date.to_string();
+        let date = date.split("-").collect::<Vec<&str>>();
+        if date.len() != 3 {
+            return Err(DateTimeError::UnspecifiedDate);
+        }
+
+        let year = date[0].parse::<i32>().expect("Invalid year.");
+        let month = date[1];
+        let day = date[2].parse::<u8>().expect("Invalid day.");
+
+        Date::new(year, month, day)
+    }
+
     pub fn as_calendar_date_tuple(&self) -> (i32, String, u8) {
         (self.year, self.month.month_name.clone(), self.day)
     }
@@ -246,6 +260,19 @@ impl Time {
                 minute,
             })
         }
+    }
+
+    pub fn parse(time: &str) -> Result<Time, DateTimeError> {
+        let time = time.to_string();
+        let time = time.split(":").collect::<Vec<&str>>();
+        if time.len() != 2 {
+            return Err(DateTimeError::UnspecifiedTime);
+        }
+
+        let hour = time[0].parse::<u8>().expect("Invalid hour.");
+        let minute = time[1].parse::<u8>().expect("Invalid minute.");
+
+        Time::new(hour, minute)
     }
 
     pub fn as_time_tuple(&self) -> (u8, u8) {

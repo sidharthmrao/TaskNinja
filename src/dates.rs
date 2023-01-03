@@ -83,14 +83,23 @@ lazy_static! {
         ("nov", "November"),
         ("dec", "December"),
         ("1", "January"),
+        ("01", "January"),
         ("2", "February"),
+        ("02", "February"),
         ("3", "March"),
+        ("03", "March"),
         ("4", "April"),
+        ("04", "April"),
         ("5", "May"),
+        ("05", "May"),
         ("6", "June"),
+        ("06", "June"),
         ("7", "July"),
+        ("07", "July"),
         ("8", "August"),
+        ("08", "August"),
         ("9", "September"),
+        ("09", "September"),
         ("10", "October"),
         ("11", "November"),
         ("12", "December"),
@@ -178,9 +187,7 @@ impl Date {
             Some(month_name) => {
                 if year < 0 {
                     Err(DateTimeError::InvalidYear)
-                } else if day < 1 {
-                    Err(DateTimeError::InvalidDay)
-                } else if day > DAY_LIMITS.get(month_name).unwrap().to_owned() as u8 {
+                } else if day < 1 || day > DAY_LIMITS.get(month_name).unwrap().to_owned() as u8 {
                     Err(DateTimeError::InvalidDay)
                 } else {
                     let month_num = MONTH_TO_DAY.get(month_name).unwrap().to_owned() as u8;

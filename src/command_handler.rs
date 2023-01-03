@@ -5,6 +5,7 @@ use indoc::{indoc};
 use crate::Date;
 use crate::dates::DateTimeError;
 use crate::Time;
+use crate::utils::read_tasks;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CommandError {
@@ -86,16 +87,16 @@ impl Response {
 }
 
 pub(crate) fn command_handler(command: Vec<String>, task_list: &mut TaskList) -> Result<String, CommandError> {
-    // let mut task_list: TaskList;
-    //
-    // match read_tasks() {
-    //     Ok(mut tasks) => {
-    //         task_list = tasks;
-    //     }
-    //     Err(_) => {
-    //         task_list = TaskList::new();
-    //     }
-    // }
+    let mut task_list: TaskList;
+
+    match read_tasks() {
+        Ok(mut tasks) => {
+            task_list = tasks;
+        }
+        Err(_) => {
+            task_list = TaskList::new();
+        }
+    }
 
     if command.len() == 0 {
         return Response::help("help");
@@ -111,21 +112,6 @@ pub(crate) fn command_handler(command: Vec<String>, task_list: &mut TaskList) ->
         "add" => {
             if command.len() == 1 {
                 Err(CommandError::MissingRequiredArgument("Add".to_string(), "Title".to_string()))
-            } else if command.len() == 2 {
-                match command[1].as_str() {
-                    "-h" | "--help" => Response::help("add"),
-                    "-t" | "--title" => Err(CommandError::MissingRequiredArgument("Add".to_string(), "Title".to_string())),
-                    "-d" | "--description" => Err(CommandError::InvalidArgument("Add".to_string(), "Description".to_string())),
-                    "-D" | "--date" => Err(CommandError::InvalidArgument("Add".to_string(), "Date".to_string())),
-                    "-T" | "--time" => Err(CommandError::InvalidArgument("Add".to_string(), "Time".to_string())),
-                    "-f" | "--flag" => Err(CommandError::MissingRequiredArgument("Add".to_string(), "Title".to_string())),
-                    "-p" | "--priority" => Err(CommandError::InvalidArgument("Add".to_string(), "Priority".to_string())),
-
-                    _ => {
-                        task_list.new_task(command[1].to_string(), None, None, None, None, false, false);
-                        Ok(("'".to_owned() + &command[1] + "' added.").to_string())
-                    }
-                }
             } else {
                 let mut title: Option<String> = None;
                 let mut description: Option<String> = None;
@@ -210,9 +196,7 @@ pub(crate) fn command_handler(command: Vec<String>, task_list: &mut TaskList) ->
             }
         };
 
-        let tasks = task_list;
-
-        let _ = save_tasks(tasks);
+        let _ = save_tasks(task_list);
 
         response
     }

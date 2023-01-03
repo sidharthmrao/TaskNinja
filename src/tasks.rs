@@ -1,6 +1,6 @@
 use crate::{Date, Time};
 use crate::dates::DateTimeError;
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 use serde::ser::SerializeStruct;
 
 pub struct Task {

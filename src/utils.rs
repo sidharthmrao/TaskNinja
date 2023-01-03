@@ -31,23 +31,23 @@ impl StdError for SaveError {
     }
 }
 
-// pub(crate) fn read_tasks() -> Result<TaskList, SaveError> {
-//     let file = File::open("tasks.json");
-//     match file {
-//         Ok(file) => {
-//             let task_list = serde_json::from_reader(file);
-//             match task_list {
-//                 Ok(task_list) => Ok(task_list),
-//                 Err(error) => Err(SaveError::ReadError(error.to_string())),
-//             }
-//         }
-//         Err(error) => Err(SaveError::ReadError(error.to_string())),
-//     }
-// }
+pub(crate) fn read_tasks() -> Result<TaskList, SaveError> {
+    let file = File::open("tasks.json");
+    match file {
+        Ok(file) => {
+            let task_list = serde_json::from_reader(file);
+            match task_list {
+                Ok(task_list) => Ok(task_list),
+                Err(error) => Err(SaveError::ReadError(error.to_string())),
+            }
+        }
+        Err(error) => Err(SaveError::ReadError(error.to_string())),
+    }
+}
 
-pub(crate) fn save_tasks(tasks: &TaskList) -> Result<String, SaveError> {
+pub(crate) fn save_tasks(tasks: TaskList) -> Result<String, SaveError> {
     let mut file = File::create("tasks.json").unwrap();
-    let write = to_writer_pretty(file, tasks);
+    let write = to_writer_pretty(file, &tasks);
 
     match write {
         Ok(_) => Ok("Tasks saved successfully".to_string()),

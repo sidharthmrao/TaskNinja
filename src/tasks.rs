@@ -53,7 +53,7 @@ impl Task {
 
     pub fn edit_description(&mut self, description: Option<String>) { self.description = description; }
 
-    pub fn to_string(&self, number: Option<i32>) -> String {
+    pub fn to_string(&self) -> String {
         let mut response = String::new();
 
         let mut color_setup = String::new();
@@ -69,9 +69,10 @@ impl Task {
 
         response.push_str(&format!("{}\n", color_setup));
 
-        match number {
-            Some(number) => { response.push_str(&format!("{}: {}\n", number+1, self.title)); },
-            _ => { response.push_str(&format!("{}\n", self.title)); },
+        match self.num {
+            0 => { response.push_str(&format!("{}\n", self.title)); },
+            _ => { response.push_str(&format!("{}: {}\n", self.num, self.title)); },
+
         }
 
         match &self.description {
@@ -132,6 +133,7 @@ impl TaskList {
                 self.tasks.insert(priority as usize, temp);
             }
             None => {
+                temp.num = self.tasks.len() as u8 + 1;
                 self.tasks.push(temp);
             }
         }
@@ -175,8 +177,8 @@ impl TaskList {
     pub fn to_string(&self) -> String {
         let mut response = String::new();
 
-        for (i, task) in self.tasks.iter().enumerate() {
-            response.push_str(&format!("{}\n", task.to_string(Some(i as i32))));
+        for task in self.tasks.iter() {
+            response.push_str(&format!("{}\n", task.to_string()));
         }
 
         response
@@ -281,8 +283,8 @@ impl TaskList {
     pub fn filter_tasks_to_string(&self, filters: Vec<&str>) -> String {
         let mut response = String::new();
 
-        for (i, task) in self.filter_tasks(filters).iter().enumerate() {
-            response.push_str(&format!("{}\n", task.to_string(Some(i as i32))));
+        for task in self.filter_tasks(filters).iter() {
+            response.push_str(&format!("{}\n", task.to_string()));
         }
 
         response

@@ -251,7 +251,7 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
             }
 
         },
-        "delete" | "d" => {
+        "del" | "delete" | "d" => {
             if command.len() == 1 {
                 Err(CommandError::MissingRequiredArgument("Delete".to_string(), "ID".to_string()))
             } else {
@@ -265,7 +265,10 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
                     match command[1].parse::<usize>() {
                         Ok(id) => {
                             match task_list.remove_task(id - 1) {
-                                Ok(ok) => Ok(ok),
+                                Ok(ok) => {
+                                    let _ = save_tasks(task_list);
+                                    Ok(ok)
+                                },
                                 Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
                             }
                         }
@@ -290,7 +293,10 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
                     match command[1].parse::<usize>() {
                         Ok(id) => {
                             match task_list.mark_task_complete(id - 1) {
-                                Ok(ok) => Ok(ok),
+                                Ok(ok) => {
+                                    let _ = save_tasks(task_list);
+                                    Ok(ok)
+                                },
                                 Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
                             }
                         }
@@ -315,7 +321,10 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
                     match command[1].parse::<usize>() {
                         Ok(id) => {
                             match task_list.mark_task_incomplete(id - 1) {
-                                Ok(ok) => Ok(ok),
+                                Ok(ok) => {
+                                    let _ = save_tasks(task_list);
+                                    Ok(ok)
+                                },
                                 Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
                             }
                         }

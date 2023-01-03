@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use lazy_static::lazy_static;
 use std::fmt;
 use std::error::Error as StdError;
+use serde::{Serialize, Serializer};
+use serde::ser::SerializeStruct;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DateTimeError {
@@ -18,7 +20,7 @@ impl fmt::Display for DateTimeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             DateTimeError::InvalidYear => write!(f, "Year out of bounds."),
-            DateTimeError::InvalidMonth => write!(f, "Month out of bounds."),
+            DateTimeError::InvalidMonth => write!(f, "Month out of bounds.m"),
             DateTimeError::InvalidDay => write!(f, "Day out of bounds."),
             DateTimeError::InvalidHour => write!(f, "Hour out of bounds."),
             DateTimeError::InvalidMinute => write!(f, "Minute out of bounds."),
@@ -39,6 +41,17 @@ impl StdError for DateTimeError {
             DateTimeError::UnspecifiedDate => "Date not specified.",
             DateTimeError::UnspecifiedTime => "Time not specified.",
         }
+    }
+}
+
+impl Serialize for DateTimeError {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("DateTimeError", 1)?;
+        state.serialize_field("error", &self.description())?;
+        state.end()
     }
 }
 
@@ -126,15 +139,40 @@ struct Month {
     month_num: u8,
 }
 
+impl Serialize for Month {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Month", 2)?;
+        state.serialize_field("month_name", &self.month_name)?;
+        state.serialize_field("month_num", &self.month_num)?;
+        state.end()
+    }
+}
+
 #[derive(Debug)]
-pub struct DateTest {
+pub struct Date {
     year: i32,
     month: Month,
     day: u8,
 }
 
-impl DateTest {
-    pub fn new(year: i32, month: &str, day: u8) -> Result<DateTest, DateTimeError> {
+impl Serialize for Date {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Date", 3)?;
+        state.serialize_field("year", &self.year)?;
+        state.serialize_field("month", &self.month)?;
+        state.serialize_field("day", &self.day)?;
+        state.end()
+    }
+}
+
+impl Date {
+    pub fn new(year: i32, month: &str, day: u8) -> Result<Date, DateTimeError> {
         let month = month.to_string();
         match MONTHS_EXPAND.get(month.to_lowercase().as_str()) {
             Some(month_name) => {
@@ -151,7 +189,7 @@ impl DateTest {
                         month_num,
                     };
 
-                    Ok(DateTest {
+                    Ok(Date {
                         year,
                         month,
                         day,
@@ -179,19 +217,31 @@ impl DateTest {
     }
 }
 
-pub struct TimeTest {
+pub struct Time {
     hour: u8,
     minute: u8,
 }
 
-impl TimeTest {
-    pub fn new(hour: u8, minute: u8) -> Result<TimeTest, DateTimeError> {
+impl Serialize for Time {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Time", 2)?;
+        state.serialize_field("hour", &self.hour)?;
+        state.serialize_field("minute", &self.minute)?;
+        state.end()
+    }
+}
+
+impl Time {
+    pub fn new(hour: u8, minute: u8) -> Result<Time, DateTimeError> {
         if hour > 23 {
             Err(DateTimeError::InvalidHour)
         } else if minute > 59 {
             Err(DateTimeError::InvalidMinute)
         } else {
-            Ok(TimeTest {
+            Ok(Time {
                 hour,
                 minute,
             })

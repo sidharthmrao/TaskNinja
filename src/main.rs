@@ -1,17 +1,34 @@
+use std::env;
+
 mod tasks;
 mod dates;
+mod command_handler;
+mod utils;
 
-use tasks::{TaskList, Task};
-use dates::{DateTest, TimeTest};
+use tasks::{TaskList};
+use dates::{Date, Time};
+use command_handler::{command_handler};
+use crate::command_handler::CommandError;
+use crate::utils::{save_tasks, SaveError};
+
+fn display_command_response(response: Result<String, CommandError>) {
+    match response {
+        Ok(message) => println!("\x1b[32m{}", message.as_str()),
+        Err(error) => println!("\x1b[31m{}\x1b[0m", error),
+    }
+}
+
+fn display_save_response(response: Result<String, SaveError>) {
+    match response {
+        Ok(message) => println!("\x1b[32m{}", message.as_str()),
+        Err(error) => println!("\x1b[31m{}\x1b[0m", error),
+    }
+}
 
 fn main() {
     let mut task_list = TaskList::new();
 
-    let task_1 = Task::from("Get into Cornell.".to_string(), Some(DateTest::new(2022, "Sep", 12)), Some(TimeTest::new(12, 6)), true, false);
-    let task_2 = Task::from("Ask out for Last Hurrah.".to_string(), Some(DateTest::new(2022, "Meow", 12)), None, false, true);
-    let task_3 = Task::from("Blah blah blah.".to_string(), None, Some(TimeTest::new(25, 61)), false, false);
-    task_list.add_task(task_1);
-    task_list.add_task(task_2);
-    task_list.add_task(task_3);
-    task_list.display();
+    let args: Vec<String> = env::args().collect();
+    let command = args[1..].to_owned();
+    display_command_response(command_handler(command, &mut task_list));
 }

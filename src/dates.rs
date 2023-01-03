@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use lazy_static::lazy_static;
 use std::fmt;
 use std::error::Error as StdError;
-use serde::{Serialize, Serializer};
-use serde::ser::SerializeStruct;
+use chrono::Local;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DateTimeError {
     InvalidYear,
     InvalidMonth,
@@ -41,17 +41,6 @@ impl StdError for DateTimeError {
             DateTimeError::UnspecifiedDate => "Date not specified.",
             DateTimeError::UnspecifiedTime => "Time not specified.",
         }
-    }
-}
-
-impl Serialize for DateTimeError {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("DateTimeError", 1)?;
-        state.serialize_field("error", &self.description())?;
-        state.end()
     }
 }
 
@@ -142,46 +131,21 @@ lazy_static! {
     ]);
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 struct Month {
     month_name: String,
     month_num: u8,
 }
 
-impl Serialize for Month {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("Month", 2)?;
-        state.serialize_field("month_name", &self.month_name)?;
-        state.serialize_field("month_num", &self.month_num)?;
-        state.end()
-    }
-}
-
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Date {
-    year: i32,
+    year: u32,
     month: Month,
     day: u8,
 }
 
-impl Serialize for Date {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("Date", 3)?;
-        state.serialize_field("year", &self.year)?;
-        state.serialize_field("month", &self.month)?;
-        state.serialize_field("day", &self.day)?;
-        state.end()
-    }
-}
-
 impl Date {
-    pub fn new(year: i32, month: &str, day: u8) -> Result<Date, DateTimeError> {
+    pub fn new(year: u32, month: &str, day: u8) -> Result<Date, DateTimeError> {
         let month = month.to_string();
         match MONTHS_EXPAND.get(month.to_lowercase().as_str()) {
             Some(month_name) => {
@@ -214,14 +178,19 @@ impl Date {
             return Err(DateTimeError::UnspecifiedDate);
         }
 
-        let year = date[0].parse::<i32>().expect("Invalid year.");
+        let year = date[0].parse::<u32>().expect("Invalid year.");
         let month = date[1];
         let day = date[2].parse::<u8>().expect("Invalid day.");
 
         Date::new(year, month, day)
     }
 
-    pub fn as_calendar_date_tuple(&self) -> (i32, String, u8) {
+    pub fn is_today(&self) -> bool {
+        let now = chrono::Local::now();
+        chrono::Datelike::day(&now) == self.day as u32 && chrono::Datelike::month(&now) == self.month.month_num as u32 && chrono::Datelike::year(&now) == self.year as i32
+    }
+
+    pub fn as_calendar_date_tuple(&self) -> (u32, String, u8) {
         (self.year, self.month.month_name.clone(), self.day)
     }
 
@@ -229,7 +198,7 @@ impl Date {
         format!("{} {}, {}", self.month.month_name, self.day, self.year)
     }
 
-    pub fn as_ordinal_date_tuple(&self) -> (i32, u8, u8) {
+    pub fn as_ordinal_date_tuple(&self) -> (u32, u8, u8) {
         (self.year, self.month.month_num, self.day)
     }
 
@@ -238,21 +207,10 @@ impl Date {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Time {
     hour: u8,
     minute: u8,
-}
-
-impl Serialize for Time {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("Time", 2)?;
-        state.serialize_field("hour", &self.hour)?;
-        state.serialize_field("minute", &self.minute)?;
-        state.end()
-    }
 }
 
 impl Time {

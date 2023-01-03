@@ -26,9 +26,7 @@ fn display_save_response(response: Result<String, SaveError>) {
 }
 
 fn main() {
-    let mut task_list = TaskList::new();
-
     let args: Vec<String> = env::args().collect();
     let command = args[1..].to_owned();
-    display_command_response(command_handler(command, &mut task_list));
+    display_command_response(command_handler(command));
 }

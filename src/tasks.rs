@@ -1,8 +1,8 @@
 use crate::{Date, Time};
 use crate::dates::DateTimeError;
-use serde::{Deserialize, Serialize, Serializer};
-use serde::ser::SerializeStruct;
+use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Task {
     title: String,
     description: Option<String>,
@@ -10,22 +10,6 @@ pub struct Task {
     due_time: Result<Time, DateTimeError>,
     complete: bool,
     flagged: bool,
-}
-
-impl Serialize for Task {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("Task", 6)?;
-        state.serialize_field("title", &self.title)?;
-        state.serialize_field("description", &self.description)?;
-        state.serialize_field("due_date", &self.due_date)?;
-        state.serialize_field("due_time", &self.due_time)?;
-        state.serialize_field("complete", &self.complete)?;
-        state.serialize_field("flagged", &self.flagged)?;
-        state.end()
-    }
 }
 
 impl Task {
@@ -84,7 +68,7 @@ impl Task {
         response.push_str(&format!("{}\n", color_setup));
 
         match number {
-            Some(number) => { response.push_str(&format!("{}: {}\n", number, self.title)); },
+            Some(number) => { response.push_str(&format!("{}: {}\n", number+1, self.title)); },
             _ => { response.push_str(&format!("{}\n", self.title)); },
         }
 
@@ -119,19 +103,9 @@ impl Task {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TaskList {
     tasks: Vec<Task>,
-}
-
-impl Serialize for TaskList {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("TaskList", 1)?;
-        state.serialize_field("tasks", &self.tasks)?;
-        state.end()
-    }
 }
 
 impl TaskList {
@@ -162,9 +136,113 @@ impl TaskList {
         self.add_task(Task::from(title, description, due_date, due_time, complete, flagged), priority);
     }
 
-    pub fn display(&self) {
-        for (i, task) in self.tasks.iter().enumerate() {
-            println!("{}", task.to_string(Some(i as i32 + 1)));
+    pub fn mark_task_complete(&mut self, index: usize) -> Result<String, String> {
+        match self.tasks.get_mut(index) {
+            Some(task) => {
+                task.mark_complete();
+                let result = Ok(format!("'{}' marked complete.", task.title));
+                result
+            }
+            None => Err(format!("Task not found: {}", index))
         }
+    }
+
+    pub fn mark_task_incomplete(&mut self, index: usize) -> Result<String, String> {
+        match self.tasks.get_mut(index) {
+            Some(task) => {
+                task.mark_incomplete();
+                let result = Ok(format!("'{}' marked incomplete.", task.title));
+                result
+            }
+            None => Err(format!("Task not found: {}", index))
+        }
+    }
+
+    pub fn remove_task(&mut self, index: usize) -> Result<String, String> {
+        if index < self.tasks.len() {
+            let task = self.tasks.remove(index);
+            Ok(format!("'{}' removed.", task.title))
+        } else {
+            Err(format!("Task not found: {}", index))
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        let mut response = String::new();
+
+        for (i, task) in self.tasks.iter().enumerate() {
+            response.push_str(&format!("{}\n", task.to_string(Some(i as i32))));
+        }
+
+        response
+    }
+
+    pub fn display(&self) {
+        println!("{}", self.to_string());
+    }
+
+    pub fn list_tasks_complete(&self) -> String {
+        let mut response = String::new();
+
+        for (i, task) in self.tasks.iter().enumerate() {
+            if task.complete {
+                response.push_str(&format!("{}\n", task.to_string(Some(i as i32))));
+            }
+        }
+
+        response
+    }
+
+    pub fn list_tasks_incomplete(&self) -> String {
+        let mut response = String::new();
+
+        for (i, task) in self.tasks.iter().enumerate() {
+            if !task.complete {
+                response.push_str(&format!("{}\n", task.to_string(Some(i as i32))));
+            }
+        }
+
+        response
+    }
+
+    pub fn list_tasks_flagged(&self) -> String {
+        let mut response = String::new();
+
+        for (i, task) in self.tasks.iter().enumerate() {
+            if task.flagged {
+                response.push_str(&format!("{}\n", task.to_string(Some(i as i32))));
+            }
+        }
+
+        response
+    }
+
+    pub fn list_tasks_unflagged(&self) -> String {
+        let mut response = String::new();
+
+        for (i, task) in self.tasks.iter().enumerate() {
+            if !task.flagged {
+                response.push_str(&format!("{}\n", task.to_string(Some(i as i32))));
+            }
+        }
+
+        response
+    }
+
+    pub fn list_tasks_due_today(&self) -> String {
+        let mut response = String::new();
+
+        for (i, task) in self.tasks.iter().enumerate() {
+            match &task.due_date {
+                Ok(date) => {
+                    if date.is_today() {
+                        response.push_str(&format!("{}\n", task.to_string(Some(i as i32))));
+                    }
+                }
+                Err(e) => {}
+            }
+        }
+
+        response
     }
 }

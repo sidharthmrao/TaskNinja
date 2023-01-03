@@ -19,10 +19,10 @@ pub enum CommandError {
 impl fmt::Display for CommandError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            CommandError::InvalidMainOperation(operation) => write!(f, "Invalid operation. '{}' not found. Type 'help' for a list of commands.", operation),
-            CommandError::InvalidHelpOperation(operation) => write!(f, "Invalid help operation. '{}' not found.", operation),
-            CommandError::MissingRequiredArgument(operation, argument) => write!(f, "Missing required argument '{}' for operation '{}'.", argument, operation),
-            CommandError::InvalidArgument(operation, argument) => write!(f, "Invalid argument '{}' for operation '{}'.", argument, operation),
+            CommandError::InvalidMainOperation(operation) => write!(f, "Invalid operation. '{}' not found. Run 'taskninja help' for a list of commands.", operation),
+            CommandError::InvalidHelpOperation(operation) => write!(f, "Invalid help operation. Argument '{}' not found. Run 'taskninja help' for more info.", operation),
+            CommandError::MissingRequiredArgument(operation, argument) => write!(f, "Missing required argument '{}' for operation '{}'. Run 'taskninja help {operation}' for more info.", argument, operation),
+            CommandError::InvalidArgument(operation, argument) => write!(f, "Invalid argument '{}' for operation '{}'. Run 'taskninja help {operation}' for more info.", argument, operation),
             CommandError::TaskNotFound(task) => write!(f, "Task '{}' not found.", task),
         }
     }
@@ -44,7 +44,7 @@ pub struct Response;
 
 impl Response {
     fn help(help_token: &str) -> Result<String, CommandError> {
-        match help_token {
+        match help_token.to_lowercase().as_str() {
             "help" => Ok(
                 indoc! {"
                     TaskNinja: A command line task manager.
@@ -68,20 +68,21 @@ impl Response {
                     Usage: taskninja add [title] [options]
 
                     Arguments for 'add':
-                        -h, --help          Display detailed help about the add operation.
+                        help, -h, --help          Display detailed help about the add operation.
                         -t, --title         Title of the task. (Required)
 
                         -d, --description   Description of the task. (Optional)
                                              - Can be set without the -d or --description flag.
-                        -D, --date          Due date of the task. (YYYY-MM-DD or YYYY-Month_name-DD) (Optional)
-                        -T, --time          Due time of the task. (HH:MM) (Optional)
-                        -f, --flag          Mark the task as important. (Optional)
+                        due, -D, --date          Due date of the task. (YYYY-MM-DD or YYYY-Month_name-DD) (Optional)
+                        at, -T, --time          Due time of the task. (HH:MM) (Optional)
+                        flag, -f, --flag          Mark the task as important. (Optional)
                         -p, --priority      Set priority of the task. (1 or higher) (Optional)
 
                     Examples:
                         taskninja add -t 'Get into Cornell.' -D 2022-09-12 -T 12:06 -r -f
                         taskninja add -t 'Ask out for Last Hurrah.' -D 2022-September-12
                         taskninja add -t 'Blah blah blah.' -d 'More nonsense' -f -p 2
+                        taskninja add 'Go on a run' due 2022-09-12 at 12:06 flag
                 "}.to_string()
             ),
             "delete" => Ok(
@@ -182,7 +183,7 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
                 let mut i = 1;
                 while i < command.len() {
                     match command[i].as_str() {
-                        "-h" | "--help" => return Response::help("add"),
+                        "help" | "-h" | "--help" => return Response::help("add"),
                         "-t" | "--title" => {
                             if i + 1 < command.len() {
                                 title = Some(command[i + 1].to_string());
@@ -199,7 +200,7 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
                                 return Err(CommandError::InvalidArgument("Add".to_string(), "Description".to_string()));
                             }
                         }
-                        "-D" | "--date" => {
+                        "due" | "-D" | "--date" => {
                             if i + 1 < command.len() {
                                 date = Some(Date::parse(&command[i + 1]));
                                 i += 1;
@@ -207,7 +208,7 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
                                 return Err(CommandError::InvalidArgument("Add".to_string(), "Date".to_string()));
                             }
                         }
-                        "-T" | "--time" => {
+                        "at" | "-T" | "--time" => {
                             if i + 1 < command.len() {
                                 time = Some(Time::parse(&command[i + 1]));
                                 i += 1;
@@ -215,7 +216,7 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
                                 return Err(CommandError::InvalidArgument("Add".to_string(), "Time".to_string()));
                             }
                         }
-                        "-f" | "--flag" => {
+                        "flag" | "-f" | "--flag" => {
                             flag = true;
                         }
                         "-p" | "--priority" => {
@@ -244,6 +245,7 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
                     return Err(CommandError::MissingRequiredArgument("Add".to_string(), "Title".to_string()));
                 } else {
                     task_list.new_task(title.as_ref().unwrap().to_string(), description, date, time, priority, false, flag);
+                    let _ = save_tasks(task_list);
                     Ok(("'".to_owned() + &title.unwrap() + "' added.").to_string())
                 }
             }
@@ -253,14 +255,22 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
             if command.len() == 1 {
                 Err(CommandError::MissingRequiredArgument("Delete".to_string(), "ID".to_string()))
             } else {
-                match command[1].parse::<usize>() {
-                    Ok(id) => {
-                        match task_list.remove_task(id-1) {
-                            Ok(ok) => Ok(ok),
-                            Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
+                return if command[1] == "help" || command[1] == "-h" || command[1] == "--help" {
+                    Response::help("delete")
+                } else if command[1] == "all" || command[1] ==  "-a" || command[1] == "--all" {
+                    task_list.tasks = Vec::new();
+                    let _ = save_tasks(task_list);
+                    Ok("All tasks deleted.".to_string())
+                } else {
+                    match command[1].parse::<usize>() {
+                        Ok(id) => {
+                            match task_list.remove_task(id - 1) {
+                                Ok(ok) => Ok(ok),
+                                Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
+                            }
                         }
+                        Err(_) => Err(CommandError::InvalidArgument("Delete".to_string(), command[1].to_string())),
                     }
-                    Err(_) => Err(CommandError::InvalidArgument("Delete".to_string(), command[1].to_string())),
                 }
             }
         },
@@ -268,14 +278,24 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
             if command.len() == 1 {
                 Err(CommandError::MissingRequiredArgument("Complete".to_string(), "ID".to_string()))
             } else {
-                match command[1].parse::<usize>() {
-                    Ok(id) => {
-                        match task_list.mark_task_complete(id-1) {
-                            Ok(ok) => Ok(ok),
-                            Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
-                        }
+                return if command[1] == "help" || command[1] == "-h" || command[1] == "--help" {
+                    Response::help("complete")
+                } else if command[1] == "all" || command[1] ==  "-a" || command[1] == "--all" {
+                    for task in &mut task_list.tasks {
+                        task.complete = true;
                     }
-                    Err(_) => Err(CommandError::InvalidArgument("Complete".to_string(), command[1].to_string())),
+                    let _ = save_tasks(task_list);
+                    Ok("All tasks completed.".to_string())
+                } else {
+                    match command[1].parse::<usize>() {
+                        Ok(id) => {
+                            match task_list.mark_task_complete(id - 1) {
+                                Ok(ok) => Ok(ok),
+                                Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
+                            }
+                        }
+                        Err(_) => Err(CommandError::InvalidArgument("Complete".to_string(), command[1].to_string())),
+                    }
                 }
             }
         },
@@ -283,14 +303,24 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
             if command.len() == 1 {
                 Err(CommandError::MissingRequiredArgument("Incomplete".to_string(), "ID".to_string()))
             } else {
-                match command[1].parse::<usize>() {
-                    Ok(id) => {
-                        match task_list.mark_task_incomplete(id-1) {
-                            Ok(ok) => Ok(ok),
-                            Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
-                        }
+                return if command[1] == "help" || command[1] == "-h" || command[1] == "--help" {
+                    Response::help("incomplete")
+                } else if command[1] == "all" || command[1] ==  "-a" || command[1] == "--all" {
+                    for task in &mut task_list.tasks {
+                        task.complete = false;
                     }
-                    Err(_) => Err(CommandError::InvalidArgument("Incomplete".to_string(), command[1].to_string())),
+                    let _ = save_tasks(task_list);
+                    Ok("All tasks marked incomplete.".to_string())
+                } else {
+                    match command[1].parse::<usize>() {
+                        Ok(id) => {
+                            match task_list.mark_task_incomplete(id - 1) {
+                                Ok(ok) => Ok(ok),
+                                Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
+                            }
+                        }
+                        Err(_) => Err(CommandError::InvalidArgument("Incomplete".to_string(), command[1].to_string())),
+                    }
                 }
             }
         },
@@ -298,22 +328,26 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
             if command.len() == 1 {
                 Ok(task_list.to_string())
             } else {
+                let mut filters: Vec<&str> = Vec::new();
+                for i in command[1..].iter() {
 
-                match command[1].as_str() {
-                    "--all" | "-a" => Ok(task_list.to_string()),
-                    "--complete" | "-c" => Ok(task_list.list_tasks_complete()),
-                    "--incomplete" | "-i" => Ok(task_list.list_tasks_incomplete()),
-                    "--flagged" | "-f" => Ok(task_list.list_tasks_flagged()),
-                    "--unflagged" | "-u" => Ok(task_list.list_tasks_unflagged()),
-                    "--today" | "-t" => Ok(task_list.list_tasks_due_today()),
-                    _ => Err(CommandError::InvalidArgument("List".to_string(), command[1].to_string())),
+                    match i.as_str() {
+                        "h" | "help" | "-h" | "--help" => { return Response::help("list"); },
+                        "a" | "all" | "-a" | "--all" => { return Ok(task_list.to_string()); },
+                        "-c" | "--complete" => { filters.push("complete"); },
+                        "-i" | "--incomplete" => { filters.push("incomplete"); },
+                        "-f" | "--flagged" => { filters.push("flagged"); },
+                        "-u" | "--unflagged" => { filters.push("unflagged"); },
+                        "-t" | "--today" => { filters.push("today"); },
+                        _ => { return Err(CommandError::InvalidArgument("List".to_string(), i.to_string())); },
+                    }
                 }
+
+                Ok(task_list.filter_tasks_to_string(filters))
             }
         },
         _ => Err(CommandError::InvalidMainOperation(command[0].to_string()))
     };
-
-    let _ = save_tasks(task_list);
 
     response
 }

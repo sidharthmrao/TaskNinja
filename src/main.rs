@@ -4,6 +4,7 @@ mod tasks;
 mod dates;
 mod command_handler;
 mod utils;
+mod config;
 
 use tasks::{TaskList};
 use dates::{Date, Time};

@@ -2,13 +2,14 @@ use crate::{Date, Time};
 use crate::dates::DateTimeError;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Task {
+    num: u8,
     title: String,
     description: Option<String>,
     due_date: Result<Date, DateTimeError>,
     due_time: Result<Time, DateTimeError>,
-    complete: bool,
+    pub(crate) complete: bool,
     flagged: bool,
 }
 
@@ -16,6 +17,7 @@ impl Task {
 
     pub fn from(title: String, description: Option<String>, due_date: Option<Result<Date, DateTimeError>>, due_time: Option<Result<Time, DateTimeError>>, complete: bool, flagged: bool) -> Task {
         Task {
+            num: 0,
             title,
             description,
             due_date: match due_date {
@@ -105,7 +107,7 @@ impl Task {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TaskList {
-    tasks: Vec<Task>,
+    pub(crate) tasks: Vec<Task>,
 }
 
 impl TaskList {
@@ -121,13 +123,16 @@ impl TaskList {
         }
     }
 
-    pub fn add_task(&mut self, task: Task, priority: Option<u8>) {
+    pub fn add_task(&mut self, mut task: Task, priority: Option<u8>) {
+        let mut temp = task.clone();
+
         match priority {
             Some(priority) => {
-                self.tasks.insert(priority as usize, task);
+                temp.num = priority;
+                self.tasks.insert(priority as usize, temp);
             }
             None => {
-                self.tasks.push(task);
+                self.tasks.push(temp);
             }
         }
     }
@@ -181,66 +186,103 @@ impl TaskList {
         println!("{}", self.to_string());
     }
 
-    pub fn list_tasks_complete(&self) -> String {
-        let mut response = String::new();
+    pub fn list_tasks_complete(&self, tasks: Vec<Task>) -> Vec<Task> {
+        let mut response = Vec::new();
 
-        for (i, task) in self.tasks.iter().enumerate() {
+        for task in tasks {
             if task.complete {
-                response.push_str(&format!("{}\n", task.to_string(Some(i as i32))));
+                response.push(task);
             }
         }
 
         response
     }
 
-    pub fn list_tasks_incomplete(&self) -> String {
-        let mut response = String::new();
+    pub fn list_tasks_incomplete(&self, tasks: Vec<Task>) -> Vec<Task> {
+        let mut response = Vec::new();
 
-        for (i, task) in self.tasks.iter().enumerate() {
+        for task in tasks {
             if !task.complete {
-                response.push_str(&format!("{}\n", task.to_string(Some(i as i32))));
+                response.push(task);
             }
         }
 
         response
     }
 
-    pub fn list_tasks_flagged(&self) -> String {
-        let mut response = String::new();
+    pub fn list_tasks_flagged(&self, tasks: Vec<Task>) -> Vec<Task> {
+        let mut response = Vec::new();
 
-        for (i, task) in self.tasks.iter().enumerate() {
+        for task in tasks {
             if task.flagged {
-                response.push_str(&format!("{}\n", task.to_string(Some(i as i32))));
+                response.push(task);
             }
         }
 
         response
     }
 
-    pub fn list_tasks_unflagged(&self) -> String {
-        let mut response = String::new();
+    pub fn list_tasks_unflagged(&self, tasks: Vec<Task>) -> Vec<Task> {
+        let mut response = Vec::new();
 
-        for (i, task) in self.tasks.iter().enumerate() {
+        for task in tasks {
             if !task.flagged {
-                response.push_str(&format!("{}\n", task.to_string(Some(i as i32))));
+                response.push(task);
             }
         }
 
         response
     }
 
-    pub fn list_tasks_due_today(&self) -> String {
-        let mut response = String::new();
+    pub fn list_tasks_due_today(&self, tasks: Vec<Task>) -> Vec<Task> {
+        let mut response = Vec::new();
 
-        for (i, task) in self.tasks.iter().enumerate() {
+        for task in tasks {
             match &task.due_date {
                 Ok(date) => {
                     if date.is_today() {
-                        response.push_str(&format!("{}\n", task.to_string(Some(i as i32))));
+                        response.push(task);
                     }
                 }
-                Err(e) => {}
+                Err(_) => {}
             }
+        }
+
+        response
+    }
+
+    pub fn filter_tasks(&self, filters: Vec<&str>) -> Vec<Task> {
+        let mut response = self.tasks.clone();
+
+        for filter in filters.iter() {
+            match filter.to_string().as_str() {
+                "complete" => {
+                    response = self.list_tasks_complete(response.clone());
+                },
+                "incomplete" => {
+                    response = self.list_tasks_incomplete(response.clone());
+                },
+                "flagged" => {
+                    response = self.list_tasks_flagged(response.clone());
+                },
+                "unflagged" => {
+                    response = self.list_tasks_unflagged(response.clone());
+                },
+                "due_today" => {
+                    response = self.list_tasks_due_today(response.clone());
+                },
+                _ => {}
+            }
+        }
+
+        response
+    }
+
+    pub fn filter_tasks_to_string(&self, filters: Vec<&str>) -> String {
+        let mut response = String::new();
+
+        for (i, task) in self.filter_tasks(filters).iter().enumerate() {
+            response.push_str(&format!("{}\n", task.to_string(Some(i as i32))));
         }
 
         response

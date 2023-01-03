@@ -131,13 +131,13 @@ lazy_static! {
     ]);
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct Month {
     month_name: String,
     month_num: u8,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Date {
     year: u32,
     month: Month,
@@ -207,7 +207,7 @@ impl Date {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Time {
     hour: u8,
     minute: u8,

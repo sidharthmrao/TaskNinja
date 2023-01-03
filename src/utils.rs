@@ -2,7 +2,7 @@ use serde_json::to_writer_pretty;
 use serde::Serializer;
 use std::fs::File;
 use tasks::Task;
-use crate::{TaskList, tasks};
+use crate::{Config, TaskList, tasks};
 use std::fmt;
 use std::error::Error as StdError;
 
@@ -31,8 +31,8 @@ impl StdError for SaveError {
     }
 }
 
-pub(crate) fn read_tasks() -> Result<TaskList, SaveError> {
-    let file = File::open("tasks.json");
+pub(crate) fn read_tasks(config: Config) -> Result<TaskList, SaveError> {
+    let file = File::open(config.data_file);
     match file {
         Ok(file) => {
             let task_list = serde_json::from_reader(file);
@@ -45,12 +45,12 @@ pub(crate) fn read_tasks() -> Result<TaskList, SaveError> {
     }
 }
 
-pub(crate) fn save_tasks(tasks: TaskList) -> Result<String, SaveError> {
-    let mut file = File::create("tasks.json").unwrap();
+pub(crate) fn save_tasks(tasks: TaskList, config: Config) -> Result<String, SaveError> {
+    let mut file = File::create(config.data_file).unwrap();
     let write = to_writer_pretty(file, &tasks);
 
     match write {
-        Ok(_) => Ok("Tasks saved successfully".to_string()),
+        Ok(_) => Ok("Tasks saved successfully.".to_string()),
         Err(error) => Err(SaveError::SaveError(error.to_string())),
     }
 }

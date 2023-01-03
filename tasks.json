@@ -45,6 +45,29 @@
       },
       "complete": false,
       "flagged": false
+    },
+    {
+      "num": 3,
+      "title": "Get into Cornell.",
+      "description": null,
+      "due_date": {
+        "Ok": {
+          "year": 2022,
+          "month": {
+            "month_name": "September",
+            "month_num": 9
+          },
+          "day": 12
+        }
+      },
+      "due_time": {
+        "Ok": {
+          "hour": 12,
+          "minute": 6
+        }
+      },
+      "complete": false,
+      "flagged": true
     }
   ]
 }

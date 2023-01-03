@@ -1,4 +1,4 @@
-use crate::{Date, Time};
+use crate::{Config, Date, Time};
 use crate::dates::DateTimeError;
 use serde::{Deserialize, Serialize};
 
@@ -53,18 +53,25 @@ impl Task {
 
     pub fn edit_description(&mut self, description: Option<String>) { self.description = description; }
 
-    pub fn to_string(&self) -> String {
+    pub fn to_string(&self, config: Config) -> String {
+        let success_color = config.success_color;
+        let error_color = config.error_color;
+        let flag_color = config.flag_color;
+        let default_color = config.default_color;
+        let complete_color = config.complete_color;
+        let incomplete_color = config.incomplete_color;
+
         let mut response = String::new();
 
         let mut color_setup = String::new();
 
         if self.complete {
-            color_setup.push_str("\x1b[32m");
+            color_setup.push_str(&complete_color);
         } else {
             if self.flagged {
-                color_setup.push_str("\x1b[4m");
+                color_setup.push_str(&flag_color);
             }
-            color_setup.push_str("\x1b[31m");
+            color_setup.push_str(&incomplete_color);
         }
 
         response.push_str(&format!("{}\n", color_setup));
@@ -100,7 +107,8 @@ impl Task {
 
         response.push_str(&format!("Complete: {}", self.complete));
 
-        response.push_str(&format!("\x1b[0m"));
+        response.push_str(&"\x1b[0m");
+        response.push_str(&default_color);
 
         response
     }
@@ -174,18 +182,18 @@ impl TaskList {
         }
     }
 
-    pub fn to_string(&self) -> String {
+    pub fn to_string(&self, config: Config) -> String {
         let mut response = String::new();
 
         for task in self.tasks.iter() {
-            response.push_str(&format!("{}\n", task.to_string()));
+            response.push_str(&format!("{}\n", task.to_string(config.clone())));
         }
 
         response
     }
 
-    pub fn display(&self) {
-        println!("{}", self.to_string());
+    pub fn display(&self, config: Config) {
+        println!("{}", self.to_string(config));
     }
 
     pub fn list_tasks_complete(&self, tasks: Vec<Task>) -> Vec<Task> {
@@ -280,11 +288,11 @@ impl TaskList {
         response
     }
 
-    pub fn filter_tasks_to_string(&self, filters: Vec<&str>) -> String {
+    pub fn filter_tasks_to_string(&self, filters: Vec<&str>, config: Config) -> String {
         let mut response = String::new();
 
         for task in self.filter_tasks(filters).iter() {
-            response.push_str(&format!("{}\n", task.to_string()));
+            response.push_str(&format!("{}\n", task.to_string(config.clone())));
         }
 
         response

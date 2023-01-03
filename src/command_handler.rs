@@ -1,4 +1,4 @@
-use crate::{save_tasks, TaskList};
+use crate::{Config, save_tasks, TaskList};
 use std::fmt;
 use std::error::Error as StdError;
 use indoc::{indoc};
@@ -146,10 +146,10 @@ impl Response {
     }
 }
 
-pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandError> {
+pub(crate) fn command_handler(command: Vec<String>, config: Config) -> Result<String, CommandError> {
     let mut task_list: TaskList;
 
-    match read_tasks() {
+    match read_tasks(config.clone()) {
         Ok(mut tasks) => {
             task_list = tasks;
         }
@@ -245,7 +245,7 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
                     return Err(CommandError::MissingRequiredArgument("Add".to_string(), "Title".to_string()));
                 } else {
                     task_list.new_task(title.as_ref().unwrap().to_string(), description, date, time, priority, false, flag);
-                    let _ = save_tasks(task_list);
+                    let _ = save_tasks(task_list, config.clone());
                     Ok(("'".to_owned() + &title.unwrap() + "' added.").to_string())
                 }
             }
@@ -259,14 +259,14 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
                     Response::help("delete")
                 } else if command[1] == "all" || command[1] ==  "-a" || command[1] == "--all" {
                     task_list.tasks = Vec::new();
-                    let _ = save_tasks(task_list);
+                    let _ = save_tasks(task_list, config.clone());
                     Ok("All tasks deleted.".to_string())
                 } else {
                     match command[1].parse::<usize>() {
                         Ok(id) => {
                             match task_list.remove_task(id - 1) {
                                 Ok(ok) => {
-                                    let _ = save_tasks(task_list);
+                                    let _ = save_tasks(task_list, config.clone());
                                     Ok(ok)
                                 },
                                 Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
@@ -287,14 +287,14 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
                     for task in &mut task_list.tasks {
                         task.complete = true;
                     }
-                    let _ = save_tasks(task_list);
+                    let _ = save_tasks(task_list, config.clone());
                     Ok("All tasks completed.".to_string())
                 } else {
                     match command[1].parse::<usize>() {
                         Ok(id) => {
                             match task_list.mark_task_complete(id - 1) {
                                 Ok(ok) => {
-                                    let _ = save_tasks(task_list);
+                                    let _ = save_tasks(task_list, config.clone());
                                     Ok(ok)
                                 },
                                 Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
@@ -315,14 +315,14 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
                     for task in &mut task_list.tasks {
                         task.complete = false;
                     }
-                    let _ = save_tasks(task_list);
+                    let _ = save_tasks(task_list, config.clone());
                     Ok("All tasks marked incomplete.".to_string())
                 } else {
                     match command[1].parse::<usize>() {
                         Ok(id) => {
                             match task_list.mark_task_incomplete(id - 1) {
                                 Ok(ok) => {
-                                    let _ = save_tasks(task_list);
+                                    let _ = save_tasks(task_list, config.clone());
                                     Ok(ok)
                                 },
                                 Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
@@ -335,14 +335,14 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
         },
         "list" | "l" => {
             if command.len() == 1 {
-                Ok(task_list.to_string())
+                Ok(task_list.to_string(config.clone()))
             } else {
                 let mut filters: Vec<&str> = Vec::new();
                 for i in command[1..].iter() {
 
                     match i.as_str() {
                         "h" | "help" | "-h" | "--help" => { return Response::help("list"); },
-                        "a" | "all" | "-a" | "--all" => { return Ok(task_list.to_string()); },
+                        "a" | "all" | "-a" | "--all" => { return Ok(task_list.to_string(config.clone())); },
                         "-c" | "--complete" => { filters.push("complete"); },
                         "-i" | "--incomplete" => { filters.push("incomplete"); },
                         "-f" | "--flagged" => { filters.push("flagged"); },
@@ -352,7 +352,7 @@ pub(crate) fn command_handler(command: Vec<String>) -> Result<String, CommandErr
                     }
                 }
 
-                Ok(task_list.filter_tasks_to_string(filters))
+                Ok(task_list.filter_tasks_to_string(filters, config.clone()))
             }
         },
         _ => Err(CommandError::InvalidMainOperation(command[0].to_string()))

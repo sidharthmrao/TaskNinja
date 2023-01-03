@@ -1,0 +1,11 @@
+{
+  "data_file": "tasks.json",
+  "time_24_hour": true,
+  "date_numerical": false,
+  "error_color": "\u001b[31m",
+  "flag_color": "\u001b[4m",
+  "success_color": "\u001b[32m",
+  "default_color": "\u001b[0m",
+  "complete_color": "\u001b[36m",
+  "incomplete_color": "\u001b[31m"
+}

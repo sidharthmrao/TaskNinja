@@ -28,8 +28,8 @@ fn display_save_response(response: Result<String, SaveError>, config: Config) {
 }
 
 fn main() {
-    let mut config: Config;
-    let mut read_conf = Config::read_from_file("config.json".to_string());
+    let config: Config;
+    let read_conf = Config::read_from_file("data/config.json".to_string());
     match read_conf {
         Ok(conf) => {
             config = conf;

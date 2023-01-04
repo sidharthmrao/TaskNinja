@@ -1,8 +1,7 @@
-use std::ops::Not;
-use std::panic::resume_unwind;
+use serde::{Deserialize, Serialize};
+
 use crate::{Config, Date, Time};
 use crate::dates::DateTimeError;
-use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Task {
@@ -16,7 +15,6 @@ pub struct Task {
 }
 
 impl Task {
-
     pub fn from(title: String, description: Option<String>, due_date: Option<Result<Date, DateTimeError>>, due_time: Option<Result<Time, DateTimeError>>, complete: bool, flagged: bool) -> Task {
         Task {
             num: 0,
@@ -43,21 +41,7 @@ impl Task {
         self.complete = false;
     }
 
-    pub fn edit_due_date(&mut self, due_date: Result<Date, DateTimeError>) {
-        self.due_date = due_date;
-    }
-
-    pub fn edit_due_time(&mut self, due_time: Result<Time, DateTimeError>) {
-        self.due_time = due_time;
-    }
-
-    pub fn edit_title(&mut self, title: String) { self.title = title; }
-
-    pub fn edit_description(&mut self, description: Option<String>) { self.description = description; }
-
     pub fn to_string(&self, config: Config) -> String {
-        let success_color = config.success_color;
-        let error_color = config.error_color;
         let flag_color = config.flag_color;
         let default_color = config.default_color;
         let complete_color = config.complete_color;
@@ -79,18 +63,23 @@ impl Task {
         response.push_str(&format!("{}\n", color_setup));
 
         match self.num {
-            0 => { response.push_str(&format!("{}\n", self.title)); },
-            _ => { response.push_str(&format!("{}: {}\n", self.num, self.title)); },
-
+            0 => { response.push_str(&format!("{}\n", self.title)); }
+            _ => { response.push_str(&format!("{}: {}\n", self.num, self.title)); }
         }
 
         match &self.description {
-            Some(description) => { response.push_str(&format!("Description: {}\n", description)); },
-            _ => { response.push_str(&format!("Description: Not specified.\n")); },
+            Some(description) => { response.push_str(&format!("Description: {}\n", description)); }
+            _ => { response.push_str(&format!("Description: Not specified.\n")); }
         }
 
         match &self.due_date {
-            Ok(date) => { response.push_str(&format!("Due Date: {}\n", date.as_calendar_date_string())); }
+            Ok(date) => {
+                if config.date_numerical {
+                    response.push_str(&format!("Due Date: {}\n", date.as_numerical_date_string()));
+                } else {
+                    response.push_str(&format!("Due Date: {}\n", date.as_calendar_date_string()));
+                }
+            }
             Err(e) => match e {
                 DateTimeError::UnspecifiedDate => { response.push_str(&format!("Due Date: Not specified.\n")); }
                 _ => { response.push_str(&format!("Due Date: Invalid. {}\n", e)); }
@@ -98,7 +87,13 @@ impl Task {
         }
 
         match &self.due_time {
-            Ok(time) => { response.push_str(&format!("Due Time: {}\n", time.as_12_hour_time_string())); }
+            Ok(time) => {
+                if config.time_24_hour {
+                    response.push_str(&format!("Due Time: {}\n", time.as_24_hour_time_string()));
+                } else {
+                    response.push_str(&format!("Due Time: {}\n", time.as_12_hour_time_string()));
+                }
+            }
             Err(e) => {
                 match e {
                     DateTimeError::UnspecifiedTime => { response.push_str(&format!("Due Time: Not specified.\n")); }
@@ -128,12 +123,6 @@ impl TaskList {
         }
     }
 
-    pub fn from(tasks: Vec<Task>) -> TaskList {
-        TaskList {
-            tasks
-        }
-    }
-
     pub fn renew(&mut self) {
         let mut new_tasks = Vec::new();
         for (i, task) in self.tasks.iter().enumerate() {
@@ -149,7 +138,7 @@ impl TaskList {
         self.renew();
     }
 
-    pub fn add_task(&mut self, mut task: Task, priority: Option<u8>) {
+    pub fn add_task(&mut self, task: Task, priority: Option<u8>) {
         let mut temp = task.clone();
 
         match priority {
@@ -242,10 +231,6 @@ impl TaskList {
         response
     }
 
-    pub fn display(&self, config: Config) {
-        println!("{}", self.to_string(config));
-    }
-
     pub fn list_tasks_complete(&self, tasks: Vec<Task>) -> Vec<Task> {
         let mut response = Vec::new();
 
@@ -318,19 +303,19 @@ impl TaskList {
             match filter.to_string().as_str() {
                 "complete" => {
                     response = self.list_tasks_complete(response.clone());
-                },
+                }
                 "incomplete" => {
                     response = self.list_tasks_incomplete(response.clone());
-                },
+                }
                 "flagged" => {
                     response = self.list_tasks_flagged(response.clone());
-                },
+                }
                 "unflagged" => {
                     response = self.list_tasks_unflagged(response.clone());
-                },
+                }
                 "due_today" => {
                     response = self.list_tasks_due_today(response.clone());
-                },
+                }
                 _ => {}
             }
         }

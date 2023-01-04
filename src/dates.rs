@@ -149,9 +149,7 @@ impl Date {
         let month = month.to_string();
         match MONTHS_EXPAND.get(month.to_lowercase().as_str()) {
             Some(month_name) => {
-                if year < 0 {
-                    Err(DateTimeError::InvalidYear)
-                } else if day < 1 || day > DAY_LIMITS.get(month_name).unwrap().to_owned() as u8 {
+                if day < 1 || day > DAY_LIMITS.get(month_name).unwrap().to_owned() as u8 {
                     Err(DateTimeError::InvalidDay)
                 } else {
                     let month_num = MONTH_TO_DAY.get(month_name).unwrap().to_owned() as u8;
@@ -186,23 +184,16 @@ impl Date {
     }
 
     pub fn is_today(&self) -> bool {
-        let now = chrono::Local::now();
+        let now = Local::now();
         chrono::Datelike::day(&now) == self.day as u32 && chrono::Datelike::month(&now) == self.month.month_num as u32 && chrono::Datelike::year(&now) == self.year as i32
-    }
-
-    pub fn as_calendar_date_tuple(&self) -> (u32, String, u8) {
-        (self.year, self.month.month_name.clone(), self.day)
     }
 
     pub fn as_calendar_date_string(&self) -> String {
         format!("{} {}, {}", self.month.month_name, self.day, self.year)
     }
 
-    pub fn as_ordinal_date_tuple(&self) -> (u32, u8, u8) {
-        (self.year, self.month.month_num, self.day)
-    }
 
-    pub fn as_ordinal_date_string(&self) -> String {
+    pub fn as_numerical_date_string(&self) -> String {
         format!("{} {}, {}", self.month.month_num, self.day, self.year)
     }
 }
@@ -238,10 +229,6 @@ impl Time {
         let minute = time[1].parse::<u8>().expect("Invalid minute.");
 
         Time::new(hour, minute)
-    }
-
-    pub fn as_time_tuple(&self) -> (u8, u8) {
-        (self.hour, self.minute)
     }
 
     pub fn as_24_hour_time_string(&self) -> String {

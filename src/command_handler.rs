@@ -185,7 +185,7 @@ pub(crate) fn command_handler(command: Vec<String>, config: Config) -> Result<St
     let mut task_list: TaskList;
 
     match read_tasks(config.clone()) {
-        Ok(mut tasks) => {
+        Ok(tasks) => {
             task_list = tasks;
         }
         Err(_) => {
@@ -371,11 +371,11 @@ pub(crate) fn command_handler(command: Vec<String>, config: Config) -> Result<St
             if command.len() == 1 {
                 Err(CommandError::MissingRequiredArgument("Search".to_string(), "Query".to_string()))
             } else {
-                if command[1] == "help" || command[1] == "-h" || command[1] == "--help" {
-                    return Response::help("search")
+                return if command[1] == "help" || command[1] == "-h" || command[1] == "--help" {
+                    Response::help("search")
                 } else {
                     let mut exact = false;
-                    let mut query = String::new();
+                    let query: String;
 
                     if command[1] == "-e" || command[1] == "--exact" {
                         if command.len() == 2 {
@@ -392,7 +392,7 @@ pub(crate) fn command_handler(command: Vec<String>, config: Config) -> Result<St
                         query = command[1].to_string();
                     }
 
-                    return Ok(task_list.search_tasks_to_string(query, exact, config.clone()))
+                    Ok(task_list.search_tasks_to_string(query, exact, config.clone()))
                 };
             }
         },
@@ -400,10 +400,10 @@ pub(crate) fn command_handler(command: Vec<String>, config: Config) -> Result<St
             if command.len() == 1 {
                 Err(CommandError::MissingRequiredArgument("Edit".to_string(), "ID".to_string()))
             } else if command.len() == 2 {
-                if command[1] == "help" || command[1] == "-h" || command[1] == "--help" {
-                    return Response::help("edit")
+                return if command[1] == "help" || command[1] == "-h" || command[1] == "--help" {
+                    Response::help("edit")
                 } else {
-                    return Err(CommandError::MissingRequiredArgument("Edit".to_string(), "Property".to_string()));
+                    Err(CommandError::MissingRequiredArgument("Edit".to_string(), "Property".to_string()))
                 }
             } else if command[1] == "help" || command[1] == "-h" || command[1] == "--help" {
                 Response::help("edit")
@@ -477,10 +477,10 @@ pub(crate) fn command_handler(command: Vec<String>, config: Config) -> Result<St
                     i += 1;
                 }
 
-                let mut task = task_list.edit_task(id, title, description, date, time, flag, priority);
+                let task_response = task_list.edit_task(id, title, description, date, time, flag, priority);
                 let _ = save_tasks(task_list, config.clone());
 
-                match task {
+                match task_response {
                     Ok(_) => {
                         Ok("Task successfully edited.".to_string())
                     }

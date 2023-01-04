@@ -21,7 +21,7 @@ pub struct Config {
 impl Config {
     pub fn default() -> Config {
         Config {
-            data_file: String::from("tasks.json"),
+            data_file: String::from("data/tasks.json"),
             time_24_hour: true,
             date_numerical: false,
 
@@ -35,7 +35,8 @@ impl Config {
     }
 
     pub fn save_to_file(&self) -> Result<String, SaveError> {
-        let mut file = File::create("config.json").unwrap();
+        std::fs::create_dir("data").unwrap_or_default();
+        let mut file = File::create("data/config.json").unwrap();
         let write = to_writer_pretty(file, &self);
 
         match write {
@@ -56,7 +57,7 @@ impl Config {
                     Err(error) => Err(SaveError::ReadError(error.to_string())),
                 }
             }
-            Err(error) => Err(SaveError::ReadError("Error reading config file, using default.".to_string())),
+            Err(error) => Err(SaveError::ReadError("Error reading config file, using default config.".to_string())),
         }
     }
 }

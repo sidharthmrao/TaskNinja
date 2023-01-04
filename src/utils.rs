@@ -46,11 +46,20 @@ pub(crate) fn read_tasks(config: Config) -> Result<TaskList, SaveError> {
 }
 
 pub(crate) fn save_tasks(tasks: TaskList, config: Config) -> Result<String, SaveError> {
-    let mut file = File::create(config.data_file).unwrap();
-    let write = to_writer_pretty(file, &tasks);
-
-    match write {
-        Ok(_) => Ok("Tasks saved successfully.".to_string()),
-        Err(error) => Err(SaveError::SaveError(error.to_string())),
+    let mut file = File::create(&config.data_file);
+    match file {
+        Ok(file) => {
+            let write = to_writer_pretty(file, &tasks);
+            match write {
+                Ok(_) => Ok("Tasks saved successfully.".to_string()),
+                Err(error) => Err(SaveError::SaveError(error.to_string())),
+            }
+        }
+        Err(error) => {
+            let _ = std::fs::create_dir("data");
+            let mut file = File::create(&config.data_file);
+            let write = to_writer_pretty(file.unwrap(), &tasks);
+            Err(SaveError::SaveError("Could not find data file. Using default location.".to_string()))
+        }
     }
 }

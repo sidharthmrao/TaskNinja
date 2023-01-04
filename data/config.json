@@ -1,5 +1,5 @@
 {
-  "data_file": "tasks.json",
+  "data_file": "data/tasks.json",
   "time_24_hour": true,
   "date_numerical": false,
   "error_color": "\u001b[31m",

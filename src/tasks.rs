@@ -1,3 +1,5 @@
+use std::ops::Not;
+use std::panic::resume_unwind;
 use crate::{Config, Date, Time};
 use crate::dates::DateTimeError;
 use serde::{Deserialize, Serialize};
@@ -132,6 +134,21 @@ impl TaskList {
         }
     }
 
+    pub fn renew(&mut self) {
+        let mut new_tasks = Vec::new();
+        for (i, task) in self.tasks.iter().enumerate() {
+            let mut new_task = task.clone();
+            new_task.num = (i + 1) as u8;
+            new_tasks.push(new_task);
+        }
+        self.tasks = new_tasks;
+    }
+
+    pub fn sort_and_renew(&mut self) {
+        self.tasks.sort_by(|a, b| a.num.cmp(&b.num));
+        self.renew();
+    }
+
     pub fn add_task(&mut self, mut task: Task, priority: Option<u8>) {
         let mut temp = task.clone();
 
@@ -139,6 +156,7 @@ impl TaskList {
             Some(priority) => {
                 temp.num = priority;
                 self.tasks.insert(priority as usize, temp);
+                self.sort_and_renew();
             }
             None => {
                 temp.num = self.tasks.len() as u8 + 1;
@@ -149,6 +167,7 @@ impl TaskList {
 
     pub fn new_task(&mut self, title: String, description: Option<String>, due_date: Option<Result<Date, DateTimeError>>, due_time: Option<Result<Time, DateTimeError>>, priority: Option<u8>, complete: bool, flagged: bool) {
         self.add_task(Task::from(title, description, due_date, due_time, complete, flagged), priority);
+        self.sort_and_renew();
     }
 
     pub fn mark_task_complete(&mut self, index: usize) -> Result<String, String> {
@@ -173,9 +192,40 @@ impl TaskList {
         }
     }
 
+    pub fn edit_task(&mut self, index: usize, title: Option<String>, description: Option<String>, due_date: Option<Result<Date, DateTimeError>>, due_time: Option<Result<Time, DateTimeError>>, flag: Option<bool>, priority: Option<u8>) -> Result<String, String> {
+        let result = match self.tasks.get_mut(index) {
+            Some(task) => {
+                if let Some(title) = title {
+                    task.title = title;
+                }
+                if let Some(description) = description {
+                    task.description = Some(description);
+                }
+                if let Some(due_date) = due_date {
+                    task.due_date = due_date;
+                }
+                if let Some(due_time) = due_time {
+                    task.due_time = due_time;
+                }
+                if let Some(flag) = flag {
+                    task.flagged = flag;
+                }
+                if let Some(priority) = priority {
+                    task.num = priority;
+                }
+                let result = Ok(format!("'{}' edited.", task.title));
+                result
+            }
+            None => Err(format!("Task not found: {}", index))
+        };
+        self.sort_and_renew();
+        result
+    }
+
     pub fn remove_task(&mut self, index: usize) -> Result<String, String> {
         if index < self.tasks.len() {
             let task = self.tasks.remove(index);
+            self.sort_and_renew();
             Ok(format!("'{}' removed.", task.title))
         } else {
             Err(format!("Task not found: {}", index))
@@ -292,6 +342,45 @@ impl TaskList {
         let mut response = String::new();
 
         for task in self.filter_tasks(filters).iter() {
+            response.push_str(&format!("{}\n", task.to_string(config.clone())));
+        }
+
+        response
+    }
+
+    pub fn search_tasks(&self, query: String, exact: bool) -> Vec<Task> {
+        let mut response = Vec::new();
+
+        let mut search = query.clone();
+
+        if !exact {
+            search = query.to_lowercase();
+        }
+
+        for task in self.tasks.iter() {
+            let mut title = task.title.clone();
+            let mut description = match &task.description {
+                Some(description) => description.clone(),
+                None => String::new()
+            };
+
+            if !exact {
+                title = title.to_lowercase();
+                description = description.to_lowercase();
+            }
+
+            if title.contains(&search) || description.contains(&search) {
+                response.push(task.clone());
+            }
+        }
+
+        response
+    }
+
+    pub fn search_tasks_to_string(&self, query: String, exact: bool, config: Config) -> String {
+        let mut response = String::new();
+
+        for task in self.search_tasks(query, exact).iter() {
             response.push_str(&format!("{}\n", task.to_string(config.clone())));
         }
 

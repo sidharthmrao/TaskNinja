@@ -68,14 +68,14 @@ impl Response {
                     Usage: taskninja add [title] [options]
 
                     Arguments for 'add':
-                        help, -h, --help          Display detailed help about the add operation.
+                        help, -h, --help    Display detailed help about the add operation.
                         -t, --title         Title of the task. (Required)
 
                         -d, --description   Description of the task. (Optional)
                                              - Can be set without the -d or --description flag.
-                        due, -D, --date          Due date of the task. (YYYY-MM-DD or YYYY-Month_name-DD) (Optional)
-                        at, -T, --time          Due time of the task. (HH:MM) (Optional)
-                        flag, -f, --flag          Mark the task as important. (Optional)
+                        due, -D, --date     Due date of the task. (YYYY-MM-DD or YYYY-Month_name-DD) (Optional)
+                        at, -T, --time      Due time of the task. (HH:MM) (Optional)
+                        flag, -f, --flag    Mark the task as important. (Optional)
                         -p, --priority      Set priority of the task. (1 or higher) (Optional)
 
                     Examples:
@@ -132,12 +132,47 @@ impl Response {
                         -i, --incomplete    List only incomplete tasks. (Optional)
                         -f, --flagged       List only flagged tasks. (Optional)
                         -u, --unflagged     List only unflagged tasks. (Optional)
-                        -t, --today          List only tasks due today. (Optional)
+                        -t, --today         List only tasks due today. (Optional)
 
                     Examples:
                         taskninja list
                         taskninja list -c
                         taskninja list --today
+                "}.to_string()
+            ),
+            "search" => Ok(
+                indoc! {"
+                    taskninja search: Search for tasks.
+                    Usage: taskninja search [query] [options]
+
+                    Arguments for 'search':
+                        -h, --help          Display detailed help about the search operation.
+                        -e, --exact         Search for an exact match. (Optional)
+
+                    Examples:
+                        taskninja search 'shopping'
+                        taskninja search 'Go shopping.' -e
+                "}.to_string()
+            ),
+            "edit" => Ok(
+                indoc! {"
+                    taskninja edit: Edit a task.
+                    Usage: taskninja edit [ID] [options]
+
+                    Arguments for 'edit':
+                        -h, --help          Display detailed help about the edit operation.
+                        -t, --title         Title of the task. (Optional)
+                        -d, --description   Description of the task. (Optional)
+                        due, -D, --date     Due date of the task. (YYYY-MM-DD or YYYY-Month_name-DD) (Optional)
+                        at, -T, --time      Due time of the task. (HH:MM) (Optional)
+                        flag, -f, --flag    Mark the task as important. (Optional)
+                        -p, --priority      Set priority of the task. (1 or higher) (Optional)
+
+                    Examples:
+                        taskninja edit 1 -t 'Go shopping.' -D 2022-09-12 -T 12:06 -r -f
+                        taskninja edit 1 -D 2022-September-12
+                        taskninja edit 1 -t 'Blah blah blah.'
+                        taskninja edit 1 due 2022-09-12 at 12:06 flag
                 "}.to_string()
             ),
 
@@ -249,15 +284,14 @@ pub(crate) fn command_handler(command: Vec<String>, config: Config) -> Result<St
                     Ok(("'".to_owned() + &title.unwrap() + "' added.").to_string())
                 }
             }
-
-        },
+        }
         "del" | "delete" | "d" => {
             if command.len() == 1 {
                 Err(CommandError::MissingRequiredArgument("Delete".to_string(), "ID".to_string()))
             } else {
                 return if command[1] == "help" || command[1] == "-h" || command[1] == "--help" {
                     Response::help("delete")
-                } else if command[1] == "all" || command[1] ==  "-a" || command[1] == "--all" {
+                } else if command[1] == "all" || command[1] == "-a" || command[1] == "--all" {
                     task_list.tasks = Vec::new();
                     let _ = save_tasks(task_list, config.clone());
                     Ok("All tasks deleted.".to_string())
@@ -268,22 +302,22 @@ pub(crate) fn command_handler(command: Vec<String>, config: Config) -> Result<St
                                 Ok(ok) => {
                                     let _ = save_tasks(task_list, config.clone());
                                     Ok(ok)
-                                },
+                                }
                                 Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
                             }
                         }
                         Err(_) => Err(CommandError::InvalidArgument("Delete".to_string(), command[1].to_string())),
                     }
-                }
+                };
             }
-        },
+        }
         "complete" | "c" => {
             if command.len() == 1 {
                 Err(CommandError::MissingRequiredArgument("Complete".to_string(), "ID".to_string()))
             } else {
                 return if command[1] == "help" || command[1] == "-h" || command[1] == "--help" {
                     Response::help("complete")
-                } else if command[1] == "all" || command[1] ==  "-a" || command[1] == "--all" {
+                } else if command[1] == "all" || command[1] == "-a" || command[1] == "--all" {
                     for task in &mut task_list.tasks {
                         task.complete = true;
                     }
@@ -296,22 +330,22 @@ pub(crate) fn command_handler(command: Vec<String>, config: Config) -> Result<St
                                 Ok(ok) => {
                                     let _ = save_tasks(task_list, config.clone());
                                     Ok(ok)
-                                },
+                                }
                                 Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
                             }
                         }
                         Err(_) => Err(CommandError::InvalidArgument("Complete".to_string(), command[1].to_string())),
                     }
-                }
+                };
             }
-        },
+        }
         "incomplete" | "i" => {
             if command.len() == 1 {
                 Err(CommandError::MissingRequiredArgument("Incomplete".to_string(), "ID".to_string()))
             } else {
                 return if command[1] == "help" || command[1] == "-h" || command[1] == "--help" {
                     Response::help("incomplete")
-                } else if command[1] == "all" || command[1] ==  "-a" || command[1] == "--all" {
+                } else if command[1] == "all" || command[1] == "-a" || command[1] == "--all" {
                     for task in &mut task_list.tasks {
                         task.complete = false;
                     }
@@ -324,13 +358,135 @@ pub(crate) fn command_handler(command: Vec<String>, config: Config) -> Result<St
                                 Ok(ok) => {
                                     let _ = save_tasks(task_list, config.clone());
                                     Ok(ok)
-                                },
+                                }
                                 Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
                             }
                         }
                         Err(_) => Err(CommandError::InvalidArgument("Incomplete".to_string(), command[1].to_string())),
                     }
+                };
+            }
+        }
+        "search" | "s" => {
+            if command.len() == 1 {
+                Err(CommandError::MissingRequiredArgument("Search".to_string(), "Query".to_string()))
+            } else {
+                if command[1] == "help" || command[1] == "-h" || command[1] == "--help" {
+                    return Response::help("search")
+                } else {
+                    let mut exact = false;
+                    let mut query = String::new();
+
+                    if command[1] == "-e" || command[1] == "--exact" {
+                        if command.len() == 2 {
+                            return Err(CommandError::MissingRequiredArgument("Search".to_string(), "Query".to_string()));
+                        } else {
+                            exact = true;
+                            query = command[2].to_string();
+                        }
+                    } else {
+                        if command.contains(&"-e".to_string()) || command.contains(&"--exact".to_string()) {
+                            exact = true;
+                        }
+
+                        query = command[1].to_string();
+                    }
+
+                    return Ok(task_list.search_tasks_to_string(query, exact, config.clone()))
+                };
+            }
+        },
+        "edit" | "e" => {
+            if command.len() == 1 {
+                Err(CommandError::MissingRequiredArgument("Edit".to_string(), "ID".to_string()))
+            } else if command.len() == 2 {
+                if command[1] == "help" || command[1] == "-h" || command[1] == "--help" {
+                    return Response::help("edit")
+                } else {
+                    return Err(CommandError::MissingRequiredArgument("Edit".to_string(), "Property".to_string()));
                 }
+            } else if command[1] == "help" || command[1] == "-h" || command[1] == "--help" {
+                Response::help("edit")
+            } else {
+                let id = match command[1].parse::<usize>() {
+                    Ok(id) => id - 1,
+                    Err(_) => return Err(CommandError::InvalidArgument("Edit".to_string(), command[1].to_string())),
+                };
+
+                let mut title: Option<String> = None;
+                let mut description: Option<String> = None;
+                let mut date: Option<Result<Date, DateTimeError>> = None;
+                let mut time: Option<Result<Time, DateTimeError>> = None;
+                let mut flag: Option<bool> = None;
+                let mut priority: Option<u8> = None;
+
+                let mut i = 2;
+                while i < command.len() {
+                    match command[i].as_str() {
+                        "help" | "-h" | "--help" => return Response::help("Edit"),
+                        "-t" | "--title" => {
+                            if i + 1 < command.len() {
+                                title = Some(command[i + 1].to_string());
+                                i += 1;
+                            } else {
+                                return Err(CommandError::InvalidArgument("Edit".to_string(), "Title".to_string()));
+                            }
+                        }
+                        "-d" | "--description" => {
+                            if i + 1 < command.len() {
+                                description = Some(command[i + 1].to_string());
+                                i += 1;
+                            } else {
+                                return Err(CommandError::InvalidArgument("Edit".to_string(), "Description".to_string()));
+                            }
+                        }
+                        "due" | "-D" | "--date" => {
+                            if i + 1 < command.len() {
+                                date = Some(Date::parse(&command[i + 1]));
+                                i += 1;
+                            } else {
+                                return Err(CommandError::InvalidArgument("Edit".to_string(), "Date".to_string()));
+                            }
+                        }
+                        "at" | "-T" | "--time" => {
+                            if i + 1 < command.len() {
+                                time = Some(Time::parse(&command[i + 1]));
+                                i += 1;
+                            } else {
+                                return Err(CommandError::InvalidArgument("Edit".to_string(), "Time".to_string()));
+                            }
+                        }
+                        "flag" | "-f" | "--flag" => {
+                            flag = Some(true);
+                        }
+                        "-p" | "--priority" => {
+                            if i + 1 < command.len() {
+                                match command[i + 1].parse::<u8>() {
+                                    Ok(p) => priority = Some(p),
+                                    Err(_) => return Err(CommandError::InvalidArgument("Edit".to_string(), "Priority".to_string())),
+                                }
+                                i += 1;
+                            } else {
+                                return Err(CommandError::InvalidArgument("Edit".to_string(), "Priority".to_string()));
+                            }
+                        }
+                        _ => {
+                            return Err(CommandError::InvalidArgument("Edit".to_string(), command[i].to_string()));
+                        }
+                    }
+                    i += 1;
+                }
+
+                let mut task = task_list.edit_task(id, title, description, date, time, flag, priority);
+                let _ = save_tasks(task_list, config.clone());
+
+                match task {
+                    Ok(_) => {
+                        Ok("Task successfully edited.".to_string())
+                    }
+                    Err(_) => Err(CommandError::TaskNotFound(command[1].to_string())),
+                }
+
             }
         },
         "list" | "l" => {
@@ -339,22 +495,21 @@ pub(crate) fn command_handler(command: Vec<String>, config: Config) -> Result<St
             } else {
                 let mut filters: Vec<&str> = Vec::new();
                 for i in command[1..].iter() {
-
                     match i.as_str() {
-                        "h" | "help" | "-h" | "--help" => { return Response::help("list"); },
-                        "a" | "all" | "-a" | "--all" => { return Ok(task_list.to_string(config.clone())); },
-                        "-c" | "--complete" => { filters.push("complete"); },
-                        "-i" | "--incomplete" => { filters.push("incomplete"); },
-                        "-f" | "--flagged" => { filters.push("flagged"); },
-                        "-u" | "--unflagged" => { filters.push("unflagged"); },
-                        "-t" | "--today" => { filters.push("today"); },
-                        _ => { return Err(CommandError::InvalidArgument("List".to_string(), i.to_string())); },
+                        "h" | "help" | "-h" | "--help" => { return Response::help("list"); }
+                        "a" | "all" | "-a" | "--all" => { return Ok(task_list.to_string(config.clone())); }
+                        "-c" | "--complete" => { filters.push("complete"); }
+                        "-i" | "--incomplete" => { filters.push("incomplete"); }
+                        "-f" | "--flagged" => { filters.push("flagged"); }
+                        "-u" | "--unflagged" => { filters.push("unflagged"); }
+                        "-t" | "--today" => { filters.push("today"); }
+                        _ => { return Err(CommandError::InvalidArgument("List".to_string(), i.to_string())); }
                     }
                 }
 
                 Ok(task_list.filter_tasks_to_string(filters, config.clone()))
             }
-        },
+        }
         _ => Err(CommandError::InvalidMainOperation(command[0].to_string()))
     };
 

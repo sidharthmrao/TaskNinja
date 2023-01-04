@@ -2,52 +2,6 @@
   "tasks": [
     {
       "num": 1,
-      "title": "Read an article for the day",
-      "description": null,
-      "due_date": {
-        "Ok": {
-          "year": 2023,
-          "month": {
-            "month_name": "January",
-            "month_num": 1
-          },
-          "day": 3
-        }
-      },
-      "due_time": {
-        "Ok": {
-          "hour": 9,
-          "minute": 0
-        }
-      },
-      "complete": false,
-      "flagged": true
-    },
-    {
-      "num": 2,
-      "title": "Read an article for the day",
-      "description": null,
-      "due_date": {
-        "Ok": {
-          "year": 2023,
-          "month": {
-            "month_name": "January",
-            "month_num": 1
-          },
-          "day": 3
-        }
-      },
-      "due_time": {
-        "Ok": {
-          "hour": 9,
-          "minute": 0
-        }
-      },
-      "complete": false,
-      "flagged": false
-    },
-    {
-      "num": 3,
       "title": "Get into Cornell.",
       "description": null,
       "due_date": {
@@ -68,6 +22,29 @@
       },
       "complete": false,
       "flagged": true
+    },
+    {
+      "num": 2,
+      "title": "go shopping",
+      "description": null,
+      "due_date": {
+        "Ok": {
+          "year": 2023,
+          "month": {
+            "month_name": "January",
+            "month_num": 1
+          },
+          "day": 3
+        }
+      },
+      "due_time": {
+        "Ok": {
+          "hour": 12,
+          "minute": 0
+        }
+      },
+      "complete": false,
+      "flagged": false
     }
   ]
 }

@@ -1,5 +1,5 @@
 # TaskNinja
-Rust CLI/TUI for task management.
+Rust CLI/TUI for task, TODO, and events management.
 
 ##### Build from source
 Install Rust and run `cargo build`

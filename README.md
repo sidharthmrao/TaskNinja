@@ -5,6 +5,7 @@ Rust CLI/TUI for task management.
 Install Rust and run `cargo build`
 
 ##### Usage
+```
 taskninja [operation] [arguments]
 
 Operations:
@@ -102,3 +103,4 @@ Arguments for 'search':
 Examples:
     taskninja search 'shopping'
     taskninja search 'Go shopping.' -e
+```
